@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MPS | 유소년 스포츠 성장 관리 솔루션</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Pretendard', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            navy: '#0f172a',
+                            blue: '#2563eb',
+                            light: '#f8fafc',
+                            gray: '#64748b',
+                            border: '#cbd5e1',
+                            accent: '#ef4444',
+                            emerald: '#10b981',
+                        },
+                        kakao: {
+                            bg: '#FEE500',
+                            text: '#191919'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mobile-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            min-height: 100vh;
+            border-left: 1px solid #cbd5e1;
+            border-right: 1px solid #cbd5e1;
+            box-shadow: 0 0 40px rgba(0,0,0,0.05);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+        
+        .reveal-up {
+            opacity: 0; transform: translateY(20px);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.active { opacity: 1; transform: translateY(0); }
+
+        .touch-action { transition: transform 0.1s ease; }
+        .touch-action:active { transform: scale(0.96); }
+
+        .anchor-btn {
+            flex: 1; text-align: center; padding: 14px 4px; font-size: 13px; font-weight: 800;
+            color: #64748b; border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .anchor-btn.active { color: #0f172a; border-bottom: 2px solid #0f172a; background-color: #f8fafc; }
+
+        .tab-btn { color: #64748b; background-color: #f8fafc; transition: all 0.2s ease; }
+        .tab-btn.active { color: #0f172a; background-color: #ffffff; font-weight: 800; box-shadow: inset 0 3px 0 0 #0f172a; }
+
+        /* --- 3장 겹침(Fan) 리포트 UI --- */
+        .stack-container {
+            position: relative; width: 100%; height: 490px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .stack-page {
+            position: absolute; width: 280px; height: 430px;
+            border: 1px solid #cbd5e1; padding: 1.25rem;
+            cursor: pointer; display: flex; flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            border-radius: 8px; background-color: #ffffff;
+            touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        .pos-center { transform: scale(1) translateX(0); z-index: 30; opacity: 1; box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.15); border-color: #0f172a; }
+        .pos-left { transform: scale(0.85) translateX(-45%); z-index: 10; opacity: 0.35; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background-color: #f8fafc; }
+        .pos-right { transform: scale(0.85) translateX(45%); z-index: 10; opacity: 0.35; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background-color: #f8fafc; }
+
+        .mini-header { border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .mini-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+        .mini-box { border: 1px solid #e2e8f0; padding: 10px; background: #ffffff; margin-bottom: 8px; border-radius: 6px; }
+        .css-bar-wrap { width: 100%; height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+        .css-bar { height: 100%; border-radius: 3px; }
+        .phase-container { display: flex; width: 100%; border: 1px solid #e2e8f0; background-color: #f8fafc; border-radius: 4px; overflow: hidden; }
+        .phase-step { flex: 1; text-align: center; padding: 5px 0; font-size: 7px; color: #64748b; border-right: 1px solid #e2e8f0; }
+        .phase-step:last-child { border-right: none; }
+        .phase-active { background-color: #0f172a; color: white; font-weight: bold; }
+
+        .flat-grid { display: grid; gap: 1px; background-color: #cbd5e1; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+        .flat-grid > div { background-color: #ffffff; }
+        .price-table th, .price-table td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: left; }
+        .price-table th { font-weight: 800; color: #0f172a; background-color: #f8fafc; }
+        .price-table td { font-weight: 600; color: #64748b; }
+    </style>
+</head>
+<body>
+
+<div class="mobile-container">
+    
+    <div class="fixed top-0 left-0 right-0 mx-auto w-full max-w-[480px] z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-brand-border flex flex-col border-l border-r">
+        <div class="px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer touch-action" onclick="window.scrollTo(0,0)">
+                <div class="w-7 h-7 border-2 border-brand-navy flex items-center justify-center text-brand-navy font-bold text-[10px] rounded-md">MPS</div>
+                <span class="font-extrabold text-xl tracking-tight text-brand-navy uppercase">MPS</span>
+            </div>
+            <a href="https://pf.kakao.com/_YlxoxhX" target="_blank" class="px-3 py-2 bg-kakao-bg text-kakao-text text-[11px] font-extrabold rounded shadow-sm touch-action flex items-center gap-1.5">
+                <i class="fa-solid fa-comment"></i> 프로그램 문의
+            </a>
+        </div>
+        <div class="flex border-t border-brand-border" id="anchorNav">
+            <a href="#definition" class="anchor-btn touch-action" onclick="setActiveAnchor(this)">MPS 소개</a>
+            <a href="#plans" class="anchor-btn touch-action" onclick="setActiveAnchor(this)">비용 Q&A</a>
+            <a href="#contact" class="anchor-btn touch-action" onclick="setActiveAnchor(this)">평가 문의</a>
+        </div>
+    </div>
+
+    <header class="relative pt-24 pb-12 px-5 min-h-[440px] flex items-center overflow-hidden border-b border-brand-border scroll-mt-[100px]">
+        <video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover z-0">
+            <source src="https://www.image2url.com/r2/default/videos/1778127635897-f0d498e7-7ac6-4af5-9522-2e1f8ca25c68.mp4" type="video/mp4">
+        </video>
+        <!-- 기존 bg-black/20 에서 bg-black/70 으로 수정하여 70% 어둡게 만듦 -->
+        <div class="absolute inset-0 bg-black/70 z-10"></div>
+        
+        <div class="relative z-20 reveal-up w-full">
+            <div class="inline-block border border-white/40 px-3 py-1 text-white text-[10px] font-bold tracking-widest uppercase mb-4 rounded bg-white/10 backdrop-blur-sm">
+                Sports Science x Medicine
+            </div>
+            <h1 class="text-[30px] font-extrabold text-white tracking-tight mb-4 leading-[1.3] break-keep">
+                선수는<br>
+                <span class="border-b-2 border-brand-blue pb-0.5">직감이 아닌 데이터로</span> 성장합니다.
+            </h1>
+            <p class="text-[14px] text-white/90 font-medium leading-relaxed mb-4 break-keep">
+                국내 최고 수준의 스포츠의학 의료진과 IT 플랫폼이 만나 유망주의 잠재력을 측정합니다.<br>
+                <strong class="text-white">유럽형 M(멘탈), P(피지컬), S(성장) 통합 분석 리포트.</strong>
+            </p>
+        </div>
+    </header>
+
+    <section id="reports" class="bg-brand-light border-b border-brand-border flex flex-col pb-10 scroll-mt-[100px]">
+        <div class="flex border-b border-brand-border bg-white z-40 mb-8 shadow-sm">
+            <button onclick="switchReport('mental')" id="tab-mental" class="tab-btn active touch-action flex-1 py-4 text-[13px] border-r border-brand-border font-bold">
+                <i class="fa-solid fa-brain text-brand-blue mr-1.5"></i> M-Report
+            </button>
+            <button onclick="switchReport('physical')" id="tab-physical" class="tab-btn touch-action flex-1 py-4 text-[13px] border-r border-brand-border font-bold">
+                <i class="fa-solid fa-heart-pulse text-brand-accent mr-1.5"></i> P-Report
+            </button>
+            <button onclick="switchReport('growth')" id="tab-growth" class="tab-btn touch-action flex-1 py-4 text-[13px] font-bold">
+                <i class="fa-solid fa-arrow-trend-up text-brand-emerald mr-1.5"></i> S-Report
+            </button>
+        </div>
+
+        <div class="px-5 pb-4 text-center reveal-up">
+            <h2 class="text-xl font-extrabold text-brand-navy tracking-tight mb-2">데이터 리포트 샘플</h2>
+        </div>
+
+        <div class="px-5 mb-4" id="report-context">
+            </div>
+
+        <div class="relative overflow-hidden flex flex-col items-center justify-center py-2 w-full mt-2">
+            <button onclick="rotateStack('left')" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur border border-brand-border rounded-full shadow-md flex items-center justify-center z-40 text-brand-gray touch-action">
+                <i class="fa-solid fa-chevron-left text-[14px]"></i>
+            </button>
+            <button onclick="rotateStack('right')" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur border border-brand-border rounded-full shadow-md flex items-center justify-center z-40 text-brand-gray touch-action">
+                <i class="fa-solid fa-chevron-right text-[14px]"></i>
+            </button>
+
+            <div class="stack-container w-full" id="report-stack-container">
+                </div>
+            
+            <div class="mt-6 border border-brand-border bg-white px-5 py-2.5 rounded-full shadow-sm text-[11px] font-bold text-brand-navy flex items-center gap-2 animate-pulse z-40 touch-action">
+                <i class="fa-solid fa-hand-pointer text-brand-blue"></i> 양옆 리포트를 터치하여 넘겨보세요
+            </div>
+        </div>
+    </section>
+
+    <section id="definition" class="py-14 bg-white border-b border-brand-border px-5 scroll-mt-[100px]">
+        <div class="mb-8 reveal-up">
+            <span class="text-brand-navy font-bold tracking-widest uppercase text-[10px] mb-2 block border-l-2 border-brand-navy pl-2">What is MPS?</span>
+            <h2 class="text-2xl font-extrabold text-brand-navy tracking-tight mb-2">가장 빛나던 재능은<br>왜 갑자기 멈출까요?</h2>
+            <p class="text-[14px] font-bold text-brand-gray">실력이 아니라, 투명한 관리 기준이 없었기 때문입니다.</p>
+        </div>
+
+        <div class="flat-grid reveal-up delay-100 shadow-sm">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="text-brand-blue text-2xl"><i class="fa-solid fa-brain"></i></div>
+                    <div><h3 class="text-[16px] font-extrabold text-brand-navy">Mental <span class="text-[11px] text-brand-gray font-bold ml-1 bg-slate-100 px-1.5 py-0.5 rounded">심리 행동 평가</span></h3></div>
+                </div>
+                <p class="text-[13px] text-brand-navy font-medium leading-relaxed break-keep">시합만 가면 주눅이 드나요? 막연한 성격 탓이 아닙니다. 회복 탄력성, 압박감 대처, 훈련 태도 등 보이지 않는 심리적 장벽을 정량화하여 맞춤형 가이드를 제공합니다.</p>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="text-brand-accent text-2xl"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div><h3 class="text-[16px] font-extrabold text-brand-navy">Physical <span class="text-[11px] text-brand-gray font-bold ml-1 bg-slate-100 px-1.5 py-0.5 rounded">위험도 예측 평가</span></h3></div>
+                </div>
+                <p class="text-[13px] text-brand-navy font-medium leading-relaxed break-keep">예고 없는 부상은 없습니다. 자율신경계 분석으로 과훈련 증후군(OTS)을 예측하고, 정밀 초음파를 통해 무릎과 아킬레스건의 구조적 텐션을 측정합니다.</p>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="text-brand-emerald text-2xl"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                    <div><h3 class="text-[16px] font-extrabold text-brand-navy">Strength <span class="text-[11px] text-brand-gray font-bold ml-1 bg-slate-100 px-1.5 py-0.5 rounded">생물학적 성장 평가</span></h3></div>
+                </div>
+                <p class="text-[13px] text-brand-navy font-medium leading-relaxed break-keep">단순히 키가 작은 것이 아니라, 만기성장형일 수 있습니다. 골연령 검사로 예측 키(PAH)를 산출하고 급성장기 타이밍에 맞춘 과학적 부하를 설계합니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-14 bg-brand-light border-b border-brand-border px-5">
+        <div class="mb-8 reveal-up">
+            <span class="text-brand-navy font-bold tracking-widest uppercase text-[10px] mb-2 block border-l-2 border-brand-navy pl-2">Review</span>
+            <h2 class="text-2xl font-extrabold text-brand-navy tracking-tight mb-2">현장의 투명한 목소리</h2>
+        </div>
+        <div class="flat-grid reveal-up delay-100 shadow-sm">
+            <div class="p-6">
+                <h4 class="text-[14px] font-bold text-brand-navy mb-2 leading-relaxed break-keep">"아이 성장이랑 멘탈에 대한 객관적 데이터에 갈증이 있는 부모님에게 무조건 추천합니다. 갑자기 못하는 게 아니라 심리적인 성장 과정에서 기다림이 필요하더라구요."</h4>
+                <div class="font-extrabold text-brand-gray text-[11px] mt-4 pt-3 border-t border-brand-border">초등 엘리트 6학년 선수 학부모 (학원팀)</div>
+            </div>
+            <div class="p-6">
+                <h4 class="text-[14px] font-bold text-brand-navy mb-2 leading-relaxed break-keep">"과부하, 위험도 지표를 보고 휴식을 부여하니 장기 부상자가 눈에 띄게 줄었습니다. 특히 부모님들께서 팀을 믿어주시는 느낌이 확연히 달라졌습니다."</h4>
+                <div class="font-extrabold text-brand-gray text-[11px] mt-4 pt-3 border-t border-brand-border">초등 엘리트 축구팀 감독 (클럽)</div>
+            </div>
+            <div class="p-6">
+                <h4 class="text-[14px] font-bold text-brand-navy mb-2 leading-relaxed break-keep">"아이 뼈나이, 멘탈을 눈으로 꾸준히 확인하니 타인과 비교하지 않게 되고 마음이 무척 편해졌습니다. 센터를 방문할 때마다 마주보고 편하게 대화도 나누니 무척 좋네요."</h4>
+                <div class="font-extrabold text-brand-gray text-[11px] mt-4 pt-3 border-t border-brand-border">K리그 유스팀 U-15 학부모</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="plans" class="py-14 bg-white border-b border-brand-border px-5 scroll-mt-[100px]">
+        <div class="mb-8 reveal-up">
+            <span class="text-brand-navy font-bold tracking-widest uppercase text-[10px] mb-2 block border-l-2 border-brand-navy pl-2">Plans & Pricing</span>
+            <h2 class="text-2xl font-extrabold text-brand-navy tracking-tight mb-2">MPS 프로그램 비용 Q&A</h2>
+            <p class="text-[13px] text-brand-gray font-bold">주기화 평가 프로그램 및 팀닥터 밀착관리</p>
+        </div>
+
+        <h3 class="text-xl font-extrabold text-brand-navy tracking-tight mb-4 border-l-4 border-brand-navy pl-2 reveal-up">주기화 평가 프로그램</h3>
+        <div class="space-y-4 reveal-up delay-100 mb-12">
+            <div class="border border-brand-navy bg-brand-navy text-white rounded-lg p-6 relative shadow-lg touch-action">
+                <div class="absolute top-0 right-0 bg-kakao-bg text-kakao-text text-[10px] font-extrabold px-3 py-1.5 border-b border-l border-brand-navy rounded-bl-lg">추천 플랜</div>
+                <h3 class="text-xl font-bold mb-1">MPS Half Season Check</h3>
+                <p class="text-[12px] text-brand-blue font-bold mb-4">3회 검진 + 리포트 & 모바일 앱 관리</p>
+                <div class="text-[16px] font-bold mb-4 pb-4 border-b border-white/20">연 5회, 정기 모니터링 패키지</div>
+                <ul class="space-y-2.5 text-[13px] text-slate-300 font-medium">
+                    <li class="flex gap-2"><i class="fa-solid fa-check text-brand-blue mt-1 text-[11px]"></i> M/P/S 통합 리포트 (PDF)</li>
+                    <li class="flex gap-2"><i class="fa-solid fa-check text-brand-blue mt-1 text-[11px]"></i> Web 대시보드 및 App 제공</li>
+                </ul>
+            </div>
+            <div class="border border-brand-border rounded-lg p-6 bg-brand-light shadow-sm touch-action">
+                <h3 class="text-lg font-bold text-brand-navy mb-1">MPS Player Dock Basic</h3>
+                <p class="text-[11px] text-brand-gray font-bold mb-4">1회 검진 + 리포트 단독</p>
+                <div class="text-[15px] font-bold text-brand-navy mb-4 pb-4 border-b border-brand-border">단기 1회성 상태 점검</div>
+            </div>
+        </div>
+
+        <div class="mb-4 reveal-up">
+            <h2 class="text-xl font-extrabold text-brand-navy tracking-tight mb-2 border-l-4 border-brand-navy pl-2">팀닥터 주치의 밀착관리</h2>
+            <p class="text-[13px] text-brand-gray font-medium mb-5 pl-3">진단 결과에 따른 집중 회복 및 케어 프로그램</p>
+            
+            <div class="space-y-4">
+                <div class="border border-brand-border rounded-lg overflow-hidden bg-white shadow-sm touch-action">
+                    <div class="bg-blue-50 px-4 py-3 border-b border-brand-border"><h4 class="font-bold text-brand-blue text-[14px]">M 스포츠한의학 프로그램</h4></div>
+                    <div class="p-4 space-y-3 text-[13px]">
+                        <div class="flex justify-between"><span>멘탈 루틴 코칭 (4주)</span><span class="font-extrabold">20만원</span></div>
+                        <div class="flex justify-between"><span>멘탈 강화 한약 (4주)</span><span class="font-extrabold">40만원</span></div>
+                    </div>
+                </div>
+                <div class="border border-brand-border rounded-lg overflow-hidden bg-white shadow-sm touch-action">
+                    <div class="bg-rose-50 px-4 py-3 border-b border-brand-border"><h4 class="font-bold text-brand-accent text-[14px]">P 스포츠한의학 프로그램</h4></div>
+                    <div class="p-4 space-y-3 text-[13px]">
+                        <div class="flex justify-between"><span>오스굿/세버병 관리 (4주)</span><span class="font-extrabold">15 ~ 30만원</span></div>
+                        <div class="flex justify-between"><span>회복·영양 관리 프로그램</span><span class="font-extrabold">30 ~ 70만원</span></div>
+                        <div class="flex justify-between"><span>부상관리 컨디셔닝 (8주)</span><span class="font-extrabold">60 ~ 120만원</span></div>
+                    </div>
+                </div>
+                <div class="border border-brand-border rounded-lg overflow-hidden bg-white shadow-sm touch-action">
+                    <div class="bg-emerald-50 px-4 py-3 border-b border-brand-border"><h4 class="font-bold text-brand-emerald text-[14px]">S 스포츠한의학 프로그램</h4></div>
+                    <div class="p-4 space-y-3 text-[13px]">
+                        <div class="flex justify-between"><span>RED-S 프로그램 (8주)</span><span class="font-extrabold">80 ~ 120만원</span></div>
+                        <div class="flex justify-between"><span>키성장 프로그램 (8주)</span><span class="font-extrabold">80 ~ 100만원</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-brand-light p-4 mt-6 rounded-lg text-[12px] text-brand-gray leading-relaxed border border-brand-border shadow-sm">
+                <strong class="text-brand-navy text-[13px]"><i class="fa-solid fa-circle-exclamation text-brand-blue"></i> 정확한 치료금액 안내</strong><br>
+                위 비용은 예상 금액이며, 탕약 처방 등 개인 체질을 반영한 맞춤 조제에 따라 세부 금액이 달라질 수 있습니다. 정확한 금액은 진료받는 <strong>제휴 의료기관</strong>에서 안내해 드립니다.
+            </div>
+        </div>
+    </section>
+
+    <section class="py-14 bg-brand-light border-b border-brand-border px-5">
+        <div class="mb-8 reveal-up">
+            <span class="text-brand-navy font-bold tracking-widest uppercase text-[10px] mb-2 block border-l-2 border-brand-navy pl-2">Medical Trust</span>
+            <h2 class="text-2xl font-extrabold text-brand-navy tracking-tight mb-2">제휴 의료기관 연계</h2>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 reveal-up delay-100 mb-8">
+            <div class="border border-brand-border rounded-xl overflow-hidden bg-white shadow-sm">
+                <div class="h-44 bg-slate-200 relative">
+                    <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=800&auto=format&fit=crop" alt="해온한의원 신도림" class="w-full h-full object-cover">
+                    <span class="absolute top-3 left-3 bg-brand-navy text-white text-[10px] font-bold px-2 py-1 rounded">서울 R&D 센터</span>
+                </div>
+                <div class="p-5">
+                    <h4 class="text-[16px] font-extrabold text-brand-navy">해온한의원 신도림</h4>
+                    <p class="text-[12px] text-brand-gray mt-1 font-medium leading-relaxed">FIFA Diploma / 초음파 골연령 진단 특화</p>
+                </div>
+            </div>
+            <div class="border border-brand-border rounded-xl overflow-hidden bg-white shadow-sm">
+                <div class="h-44 bg-slate-200 relative">
+                    <img src="https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?q=80&w=800&auto=format&fit=crop" alt="해온한의원 동탄" class="w-full h-full object-cover">
+                    <span class="absolute top-3 left-3 bg-brand-navy text-white text-[10px] font-bold px-2 py-1 rounded">경기 남부</span>
+                </div>
+                <div class="p-5">
+                    <h4 class="text-[16px] font-extrabold text-brand-navy">해온한의원 동탄</h4>
+                    <p class="text-[12px] text-brand-gray mt-1 font-medium leading-relaxed">유소년 엘리트 진료 / K-Medi 기반 팀닥터</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="border border-brand-border bg-white p-5 rounded-lg shadow-sm reveal-up delay-200">
+            <h3 class="text-[14px] font-bold text-brand-navy mb-4 border-b border-brand-border pb-2 uppercase tracking-wide">R&D 최고 전문가 그룹</h3>
+            <ul class="text-[12px] text-brand-navy space-y-4 font-medium">
+                <li class="flex justify-between items-center gap-2"><strong>이정욱 <span class="font-normal text-[10px] text-brand-gray">CEO/MD.DKM</span></strong> <span class="text-brand-gray text-[11px] text-right leading-tight">FIFA 메디컬 디플로마, 한의사, 팀닥터</span></li>
+                <li class="flex justify-between items-center gap-2"><strong>김학인 <span class="font-normal text-[10px] text-brand-gray">CMO</span></strong> <span class="text-brand-gray text-[11px] text-right leading-tight">20년 축구현장 대한축구협회, 스페셜리스트</span></li>
+                <li class="flex justify-between items-center gap-2"><strong>민은경 <span class="font-normal text-[10px] text-brand-gray">MD.DKM</span></strong> <span class="text-brand-gray text-[11px] text-right leading-tight">한방내과 전문의, 팀닥터</span></li>
+                <li class="flex justify-between items-center gap-2"><strong>정지은 <span class="font-normal text-[10px] text-brand-gray">MD.DKM</span></strong> <span class="text-brand-gray text-[11px] text-right leading-tight">한방소아과 전문의, 한의학박사</span></li>
+                <li class="flex justify-between items-center gap-2"><strong>한유경 <span class="font-normal text-[10px] text-brand-gray">MD.DKM</span></strong> <span class="text-brand-gray text-[11px] text-right leading-tight">한의사, 팀닥터, 미국(RMSK) 초음파전문가</span></li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="contact" class="py-16 bg-brand-navy text-center px-5 scroll-mt-[100px]">
+        <div class="reveal-up">
+            <h2 class="text-2xl font-extrabold text-white mb-3 tracking-tight">데이터가 증명하는 성장의 차이.</h2>
+            <p class="text-[13px] text-slate-400 mb-8 font-medium break-keep leading-relaxed">아시아 유소년 스포츠 데이터의 표준, MPS System.<br>팀과 선수 매니지먼트를 혁신할 솔루션을 만나보세요.</p>
+            <a href="https://pf.kakao.com/_YlxoxhX" target="_blank" class="touch-action block w-full py-4 bg-kakao-bg text-kakao-text font-extrabold text-[15px] rounded-xl shadow-lg text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-comment text-lg"></i> 카카오톡으로 프로그램 문의
+            </a>
+        </div>
+    </section>
+
+    <footer class="bg-white py-10 px-5 text-brand-navy text-[11px] border-b-[12px] border-brand-navy">
+        <div class="mb-6 border-b border-brand-border pb-6">
+            <div class="font-extrabold text-[16px] tracking-tight mb-2 uppercase">MPS</div>
+            <p class="font-bold mb-1">(주)주니어골든에이지</p>
+            <p class="text-brand-gray leading-relaxed">사업자등록번호: 721-86-03995 | 대표: 이정욱<br>서울시 구로구 새말로 97 1층 47호</p>
+        </div>
+        <div class="flex justify-between items-center text-brand-gray pt-4 border-t border-brand-border font-medium">
+            <p>&copy; 2026 JuniorGoldenAge</p>
+            <div class="flex space-x-4"><a href="#" class="font-bold text-brand-navy">개인정보처리방침</a><a href="#">이용약관</a></div>
+        </div>
+    </footer>
+
+</div>
+
+<script>
+    const reportData = {
+        mental: { title: "보이지 않는 마음의 시각화", desc: "압박감 대처, 실수 후 회복력 등 '스포츠 퍼포먼스'를 위한 5대 핵심 멘탈 지수를 정밀 측정합니다.", html: `
+            <div class="stack-page pos-right touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">부모님 가이드</h4><span class="text-[8px] text-brand-gray">M-REPORT</span></div>
+                <div class="mini-box"><p class="text-[9px] font-bold text-brand-blue mb-1">💬 이렇게 말해 주세요</p><p class="text-[9px] text-brand-gray">"오늘 제일 잘된 장면 하나만 같이 떠올려 보자."</p></div>
+            </div>
+            <div class="stack-page pos-left touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">세부지표</h4><span class="text-[8px] text-brand-gray">M-REPORT</span></div>
+                <div class="flex-1 w-full relative h-[200px]"><canvas id="m-bar-chart"></canvas></div>
+            </div>
+            <div class="stack-page pos-center touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><div><span class="mini-badge border border-brand-blue text-brand-blue">M-REPORT</span><h4 class="mini-title mt-1.5">멘탈 종합결과</h4></div><span class="text-[8px] font-bold text-brand-navy px-1.5 py-0.5 bg-brand-light">PAGE 1</span></div>
+                <div class="border border-brand-border p-2 bg-white flex-1 relative flex items-center justify-center rounded-lg"><canvas id="m-chart"></canvas></div>
+            </div>`
+        },
+        physical: { title: "예고 없는 부상의 차단", desc: "자율신경계(HRV)와 초음파를 분석하여 신체가 한계에 달했는지 파악해 부상을 방지합니다.", html: `
+            <div class="stack-page pos-right touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">초음파 판독</h4><span class="text-[8px] text-brand-gray">P-REPORT</span></div>
+                <div class="mini-box flex justify-between"><span>무릎(슬개건)</span><span class="text-brand-accent font-bold">주의</span></div>
+                <div class="mini-box"><p class="text-[8px] text-brand-navy">"훈련 직후 아이싱 권장"</p></div>
+            </div>
+            <div class="stack-page pos-left touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">피로도 추이</h4><span class="text-[8px] text-brand-gray">P-REPORT</span></div>
+                <div class="flex-1 w-full h-[150px]"><canvas id="p-area-chart"></canvas></div>
+            </div>
+            <div class="stack-page pos-center touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><div><span class="mini-badge border border-brand-accent text-brand-accent">P-REPORT</span><h4 class="mini-title mt-1.5">피지컬 종합결과</h4></div></div>
+                <div class="bg-brand-navy text-white p-4 rounded-lg"><p class="text-[13px] font-extrabold">Risk Index: 85.4</p><span class="block text-[8px] font-bold bg-rose-500 mt-2 px-1">휴식요망</span></div>
+            </div>`
+        },
+        growth: { title: "내 아이만의 성장 로드맵", desc: "골연령으로 '최종 예측 키(PAH)'를 산출하고, PHV 단계에 맞춘 훈련 부하 관리 가이드를 제공합니다.", html: `
+            <div class="stack-page pos-right touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">훈련 가이드</h4><span class="text-[8px] text-brand-gray">S-REPORT</span></div>
+                <div class="mini-box"><h5 class="text-[9px] font-bold">🏃‍♂️ 부하 관리</h5><p class="text-[8px]">점프/급가속 반복량 세밀하게 조절</p></div>
+            </div>
+            <div class="stack-page pos-left touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><h4 class="text-[10px] font-bold text-brand-navy">성장곡선</h4><span class="text-[8px] text-brand-gray">S-REPORT</span></div>
+                <div class="flex-1 w-full h-[180px]"><canvas id="s-line-chart"></canvas></div>
+            </div>
+            <div class="stack-page pos-center touch-action" onclick="bringToTop(this)">
+                <div class="mini-header"><div><span class="mini-badge border border-brand-emerald text-brand-emerald">S-REPORT</span><h4 class="mini-title mt-1.5">성장 종합결과</h4></div></div>
+                <div class="mini-box text-center bg-brand-light"><p class="text-[8px] font-bold">최종 예측(PAH)</p><p class="text-xl font-extrabold text-brand-emerald">174.0cm</p></div>
+            </div>`
+        }
+    };
+
+    function bringToTop(el) {
+        if (!el || el.classList.contains('pos-center')) return;
+        const container = el.parentElement;
+        const centerEl = container.querySelector('.pos-center');
+        const leftEl = container.querySelector('.pos-left');
+        const rightEl = container.querySelector('.pos-right');
+        if (el === leftEl) { leftEl.className = 'stack-page pos-center touch-action'; centerEl.className = 'stack-page pos-right touch-action'; rightEl.className = 'stack-page pos-left touch-action'; } 
+        else if (el === rightEl) { rightEl.className = 'stack-page pos-center touch-action'; centerEl.className = 'stack-page pos-left touch-action'; leftEl.className = 'stack-page pos-right touch-action'; }
+    }
+
+    function rotateStack(direction) {
+        const container = document.getElementById('report-stack-container');
+        const leftEl = container.querySelector('.pos-left');
+        const rightEl = container.querySelector('.pos-right');
+        if (direction === 'left' && leftEl) bringToTop(leftEl);
+        if (direction === 'right' && rightEl) bringToTop(rightEl);
+    }
+
+    let charts = {};
+    function initMiniCharts() {
+        Object.values(charts).forEach(c => c && c.destroy());
+        charts = {};
+        const ctxMR = document.getElementById('m-chart');
+        if(ctxMR) charts.mR = new Chart(ctxMR.getContext('2d'), { type: 'radar', data: { labels: ['불안', '도움', '준비', '회복', '조절'], datasets: [{ data: [4.1, 4.8, 4.9, 3.8, 4.2], borderColor: '#0f172a', backgroundColor: 'rgba(15,23,42,0.05)', borderWidth: 1.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 6, ticks: {display: false}, pointLabels: {font: {size: 8, weight:'bold'}, color:'#0f172a'} } } } });
+        const ctxSL = document.getElementById('s-line-chart');
+        if(ctxSL) charts.sL = new Chart(ctxSL.getContext('2d'), { type: 'line', data: { labels: ['10세', '11세', '12세', '13세'], datasets: [{ data: [138, 142, 145.5, 153], borderColor: '#0f172a', borderWidth: 2, pointRadius: 2, tension: 0.3 }, { data: [138, 144, 149, 156], borderColor: '#cbd5e1', borderDash: [2,2], borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: {font: {size: 8}} }, y: { ticks: {font: {size: 8}} } } } });
+    }
+
+    function switchReport(type) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.id === `tab-${type}`) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        const data = reportData[type];
+        document.getElementById('report-context').innerHTML = `<div class="reveal-up active"><h3 class="text-[17px] font-extrabold text-brand-navy mb-2 tracking-tight">${data.title}</h3><p class="text-[13px] font-medium text-brand-gray leading-relaxed break-keep">${data.desc}</p></div>`;
+        document.getElementById('report-stack-container').innerHTML = data.html;
+        setTimeout(initMiniCharts, 50);
+    }
+
+    function setActiveAnchor(el) {
+        document.querySelectorAll('.anchor-btn').forEach(btn => btn.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    window.addEventListener('load', () => {
+        switchReport('mental');
+        const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }), { threshold: 0.1 });
+        document.querySelectorAll('.reveal-up').forEach(e => obs.observe(e));
+        document.querySelector('.anchor-btn').classList.add('active');
+    });
+</script>
+</body>
+</html>
